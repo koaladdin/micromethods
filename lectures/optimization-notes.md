@@ -1,10 +1,42 @@
 # Optimization
 
-How do we get a computer to find the max/min of a function.
+**[Start with introductions and Friday schedule...]**
+
+How do we get a computer to find the max/min of a function?
 
 Remember, you'll be dealing with complicated functions in your research -- so you'll want to be mindful of computation. 
 
-First we'll discuss a popular non-derivative based method. 
+First we'll discuss a popular non-derivative based methods. 
+
+
+## Grid Search
+
+Divide your domain into a grid $(x_n)$ and evaluate the function at each point. 
+
+Con: Can be very expensive. We should make smarter guesses. 
+
+Pro: You can visualize your function. Can help design smarter methods. 
+
+
+## Golden Search
+
+Algorithm (finding a minimum)
+1. Choose an interval $[x^1,x^3]$ and interior point $x^2$ such that $$f(x^2)<f(x^1), f(x^2)<f(x^3)$$
+2. Choose the new triplet that has the interior point as the new minimum.
+ 
+![Vis of Golden Section Search](goldensearch.png)
+
+Goal is to do this as fast as possible with the fewest function evaluations. 
+* Pick longest interval
+* re-use the edge points for the next triplet
+* **where should we place $x^2$** to be efficient?
+* Spacing proportions should be the same for $(x^1,x^2,x^4)$ and $(x^2,x^4,x^3)$
+* interval width should shrink at some constant proportion.
+* We want 
+  $$\text{for}\,\,\,\frac{c}{a} =\frac{a}{b} \,\,\, \text{and} \,\,\,\, \frac{c}{b-c} = \frac{a}{b} $$
+* After some algebraic manipulation, 
+  $$(\frac{b}{a})^2 - \frac{b}{a} = 1 \implies \frac{b}{a} = \varphi$$
+* $\varphi = \frac{1+\sqrt{5}}{2} = 1.6180339...$ (duh!) 
 
 ### Nelder-Mead Optimization
 
@@ -12,22 +44,21 @@ First we'll discuss a popular non-derivative based method.
 * works in multiple dimensions
 
 **Algorithm**
-
-* Example: in three dimension 
+*(finding a max in three dimensions)*
 
 1. Guess three starting points to form a simplex. 
-2. Evaluate and order so that $f(a) < f(b) < f(c)$
-3. Reflect: reflect $c$ through $a-b$.
+2. Evaluate and order so that $f(a) > f(b) > f(c)$
+3. Reflect: reflect $c$ through $a-b$. Call it $d$
    <!-- * if $f(a) < f(c') < f(b)$ then go to step 1.  -->
-4. Expand. If $f(c')<f(a)$, then keep going with the reflection.
-5. Contract.  if $f(a) < f(c') < f(b)$ then contract $c'$ to see if it improves. 
+4. Expand. If $f(d)>\max\{f(a),f(b)\}$, then keep going with the reflection, in other words, expand.
+5. Contract.  if $f(d) < \max\{f(a),f(b)\}$ then contract $d'$ to see if it improves. 
 6. Shrink. If the contracted point is the worst still, then shrink the original simplex towards $a$ (without replacing $a$).
 
 
 ![Visualization of Nelder Mead Algorithm](neldermead.png)
 
 
-
+#### Example: Banana Function
 Define the following functions:
 
 ```julia
@@ -51,14 +82,16 @@ using BenchmarkTools  # For timing
 x = Optim.minimizer(result)
 ```
 
-Note: In Julia, we're using the Optim.jl package which provides similar functionality to MATLAB's optimization toolbox. The interface is slightly different but achieves the same goal.
+*Note: In Julia, we're using the Optim.jl package which provides similar functionality to MATLAB's optimization toolbox. The interface is slightly different but achieves the same goal.*
 
 ## Newton Raphson Method
 
+Now let's consider popular gradient-based methods. Starting with the most "first-principles" approach. 
+
 * Use successive quadratic approximations to the objective.
 * Hope is that the max of the approximants converges to the max of the objective.
-* This is the EXACT same principle as the Newton root-finding routine.
-  * Just apply Newton's for root-finding to the gradient.
+* This is the EXACT same principle as the Newton root-finding routine (recall linear approximations).
+  * Sort of just like applying Newton's for root-finding to the gradient of our objective.
 
 ### Iterative procedure:
 
@@ -143,20 +176,24 @@ x_new = Optim.minimizer(result)
 
 ## Benchmarking Results
 
+I posted a file ```optimization-benchmark.jl``` that compares different methods using two tricky objective functions. 
+
 | Function | Method | Gradient Type | Mean Time (s) | Std Time | Mean Iterations | Convergence Rate | Best Minimum |
 |----------|---------|---------------|--------------|-----------|-----------------|-----------------|--------------|
-| Rosenbrock | NelderMead | None | 0.0015 | 0.0046 | 69.2 | 1.0 | 7.91e-10 |
-| Rosenbrock | BFGS | Analytical | 0.0020 | 0.0062 | 24.0 | 1.0 | 2.42e-30 |
-| Rosenbrock | BFGS-FD | Numerical | 0.0288 | 0.0287 | 744.2 | 0.3 | 2.81e-12 |
-| Rosenbrock | BFGS-AD | AutoDiff | 0.0695 | 0.2195 | 24.1 | 1.0 | 2.42e-30 |
-| Rosenbrock | GradientDescent | Analytical | 0.0044 | 0.0065 | 1000.0 | 0.0 | 9.93e-5 |
-| Rosenbrock | ConjugateGradient | Analytical | 0.0013 | 0.0039 | 27.5 | 1.0 | 2.13e-25 |
-| Himmelblau | NelderMead | None | 0.0009 | 0.0026 | 43.9 | 1.0 | 1.13e-9 |
-| Himmelblau | BFGS | Analytical | 0.0013 | 0.0039 | 8.5 | 1.0 | 0.0 |
-| Himmelblau | BFGS-FD | Numerical | 0.0121 | 0.0274 | 206.7 | 0.8 | 4.40e-16 |
-| Himmelblau | BFGS-AD | AutoDiff | 0.0335 | 0.1059 | 8.5 | 1.0 | 0.0 |
-| Himmelblau | GradientDescent | Analytical | 0.0001 | 0.0000 | 15.8 | 1.0 | 4.09e-21 |
-| Himmelblau | ConjugateGradient | Analytical | 0.0010 | 0.0030 | 9.1 | 1.0 | 5.59e-27 |
+| Rosenbrock | NelderMead | None | 0.0005 | 0.0013 | 70.3 | 1.0 | 5.91e-10 |
+| Rosenbrock | BFGS | Analytical | 0.0008 | 0.0023 | 30.3 | 1.0 | 3.08e-31 |
+| Rosenbrock | BFGS-FD | Numerical | 0.0114 | 0.0135 | 417.3 | 0.6 | 2.62e-13 |
+| Rosenbrock | BFGS-AD | AutoDiff | 0.0057 | 0.0179 | 30.9 | 1.0 | 3.08e-31 |
+| Rosenbrock | GradientDescent | Analytical | 0.0021 | 0.0001 | 1000.0 | 0.0 | 1.03e-03 |
+| Rosenbrock | ConjugateGradient | Analytical | 0.0009 | 0.0025 | 30.2 | 1.0 | 2.23e-20 |
+| Rosenbrock | GoldenSection | None | 0.0104 | 0.0209 | 1000.0 | 0.0 | 4.77e-05 |
+| Himmelblau | NelderMead | None | 0.0008 | 0.0022 | 44.3 | 1.0 | 3.68e-11 |
+| Himmelblau | BFGS | Analytical | 0.0012 | 0.0038 | 8.7 | 1.0 | 3.16e-30 |
+| Himmelblau | BFGS-FD | Numerical | 0.0082 | 0.0142 | 306.0 | 0.7 | 1.50e-16 |
+| Himmelblau | BFGS-AD | AutoDiff | 0.0321 | 0.1013 | 8.7 | 1.0 | 3.16e-30 |
+| Himmelblau | GradientDescent | Analytical | 0.0001 | 0.0 | 22.7 | 1.0 | 2.98e-20 |
+| Himmelblau | ConjugateGradient | Analytical | 0.0008 | 0.0025 | 10.0 | 1.0 | 1.52e-27 |
+| Himmelblau | GoldenSection | None | 0.0074 | 0.0235 | 7.9 | 1.0 | 2.06e-18 |
 
 
 ## Maximum Likelihood
@@ -184,6 +221,3 @@ Plus, the inverse "Hessian" is an estimate for the covariance of $θ$, so we get
 * MCMC approaches: Chernozhukov and Hong (2003)
 
 These methods can be very very slow to converge, but are useful in cases where you know your objective function is non-smooth or very ill-behaved.
-
-
-## Derivatives

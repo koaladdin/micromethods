@@ -4,43 +4,85 @@ using ForwardDiff
 using Statistics
 using DataFrames
 using Plots
+using Printf
+using LinearAlgebra
 
-"""
-Compute gradient using finite differences.
-
-Parameters:
-- f: function to differentiate
-- x: point at which to compute gradient
-- h: step size (default: 1e-8)
-- method: "forward" or "central" (default: "forward")
-
-Returns:
-- gradient vector at point x
-"""
-function finite_diff_gradient(f, x::Vector{T}, 
-                            h::T=1e-8, 
-                            method::String="forward") where T<:Real
-    n = length(x)
-    grad = zeros(T, n)
-    x_temp = copy(x)
+# Golden Section Search implementation
+function golden_section_1d(f, a, b, tol=1e-8, max_iter=1000)
+    φ = (1 + √5) / 2  # golden ratio
+    ρ = 1/φ
+    d = ρ * (b - a)
+    x1 = b - d
+    x2 = a + d
+    f1 = f(x1)
+    f2 = f(x2)
     
-    for i in 1:n
-        if method == "forward"
-            # Forward difference
-            x_temp[i] = x[i] + h
-            grad[i] = (f(x_temp) - f(x)) / h
+    for _ in 1:max_iter
+        if f1 < f2
+            b = x2
+            x2 = x1
+            f2 = f1
+            d = ρ * (b - a)
+            x1 = b - d
+            f1 = f(x1)
         else
-            # Central difference
-            x_temp[i] = x[i] + h
-            forward = f(x_temp)
-            x_temp[i] = x[i] - h
-            backward = f(x_temp)
-            grad[i] = (forward - backward) / (2h)
+            a = x1
+            x1 = x2
+            f1 = f2
+            d = ρ * (b - a)
+            x2 = a + d
+            f2 = f(x2)
         end
-        x_temp[i] = x[i]  # Reset
+        
+        if abs(b - a) < tol
+            return (a + b) / 2
+        end
     end
     
-    return grad
+    return (a + b) / 2
+end
+
+"""
+2D Golden Section Search using coordinate descent
+"""
+function golden_section_2d(f, x0, bounds, tol=1e-8, max_iter=1000)
+    x = copy(x0)
+    x_history = [copy(x)]
+    iter = 0
+    
+    for _ in 1:max_iter
+        x_old = copy(x)
+        
+        # Optimize along x1 direction
+        f1 = t -> f([t, x[2]])
+        x[1] = golden_section_1d(f1, bounds[1][1], bounds[1][2], tol)
+        
+        # Optimize along x2 direction
+        f2 = t -> f([x[1], t])
+        x[2] = golden_section_1d(f2, bounds[2][1], bounds[2][2], tol)
+        
+        push!(x_history, copy(x))
+        iter += 1
+        
+        # Check convergence
+        if norm(x - x_old) < tol
+            break
+        end
+    end
+    
+    return x, x_history, iter
+end
+
+# Wrapper for optimization interface
+function optimize_golden_section(f, x0, bounds; 
+                               tol=1e-8, max_iter=1000)
+    x_min, history, iter = golden_section_2d(f, x0, bounds, tol, max_iter)
+    converged = iter < max_iter
+    
+    return (minimizer=x_min, 
+            minimum=f(x_min), 
+            iterations=iter, 
+            converged=converged)
 end
 
 """
@@ -152,14 +194,6 @@ end
 # Himmelblau function
 himmelblau(x) = (x[1]^2 + x[2] - 11)^2 + (x[1] + x[2]^2 - 7)^2
 
-# Let's make a simpler version to verify step by step
-function himmelblau_value(x, y)
-    term1 = (x^2 + y - 11)^2
-    term2 = (x + y^2 - 7)^2
-    return term1 + term2
-end
-
-# Himmelblau gradient, implemented as directly as possible
 function himmelblau_gradient!(g, x)
     # First term derivatives: (x^2 + y - 11)^2
     term1 = x[1]^2 + x[2] - 11
@@ -174,7 +208,6 @@ function himmelblau_gradient!(g, x)
     g[1] = dx1 + dx2
     g[2] = dy1 + dy2
 end
-
 
 # Run benchmarks
 function run_full_benchmark()
@@ -191,7 +224,8 @@ function run_full_benchmark()
         (method=BFGS(), name="BFGS-FD", grad_type="Numerical"),
         (method=BFGS(), name="BFGS-AD", grad_type="AutoDiff"),
         (method=GradientDescent(), name="GradientDescent", grad_type="Analytical"),
-        (method=ConjugateGradient(), name="ConjugateGradient", grad_type="Analytical")
+        (method=ConjugateGradient(), name="ConjugateGradient", grad_type="Analytical"),
+        (method="GoldenSection", name="GoldenSection", grad_type="None")
     ]
     
     # Generate random starting points
@@ -220,8 +254,12 @@ function run_full_benchmark()
             elseif config.grad_type == "Numerical"
                 # Simple forward differences
                 (g, x) -> begin
-                    grad = finite_diff_gradient(f.f, x)
-                    g .= grad
+                    h = 1e-8  # Step size
+                    for i in 1:length(x)
+                        x_plus_h = copy(x)
+                        x_plus_h[i] += h
+                        g[i] = (f.f(x_plus_h) - f.f(x)) / h
+                    end
                 end
             elseif config.grad_type == "AutoDiff"
                 (g, x) -> ForwardDiff.gradient!(g, f.f, x)
@@ -230,9 +268,26 @@ function run_full_benchmark()
             end
             
             # Run optimization
-            results = benchmark_from_multiple_starts(
-                f.f, gradient_func, config.method, starts
-            )
+            if config.method == "GoldenSection"
+                results = []
+                bounds = ((-4.0, 4.0), (-4.0, 4.0))
+                
+                for x0 in starts
+                    time = @elapsed result = optimize_golden_section(f.f, x0, bounds)
+                    push!(results, (
+                        time=time,
+                        iterations=result.iterations,
+                        minimum=result.minimum,
+                        converged=result.converged,
+                        x_final=result.minimizer
+                    ))
+                end
+            else
+                results = benchmark_from_multiple_starts(
+                    f.f, gradient_func, config.method, starts
+                )
+            end
+            
             stats = analyze_results(results)
             
             push!(all_results, (
@@ -253,6 +308,19 @@ function run_full_benchmark()
             display(p)
             savefig(p, "$(f.name)_$(config.name)_$(config.grad_type)_paths.png")
         end
+    end
+    
+    # Generate Markdown table
+    println("\nMarkdown Table:")
+    println("| Function | Method | Gradient Type | Mean Time (s) | Std Time | Mean Iterations | Convergence Rate | Best Minimum |")
+    println("|----------|---------|---------------|--------------|-----------|-----------------|-----------------|--------------|")
+    
+    for row in eachrow(all_results)
+        formatted_row = "| $(row.function_name) | $(row.method_name) | $(row.gradient_type) | " *
+                       "$(round(row.mean_time, digits=4)) | $(round(row.std_time, digits=4)) | " *
+                       "$(round(row.mean_iterations, digits=1)) | $(row.convergence_rate) | " *
+                       "$(@sprintf("%.2e", row.best_minimum)) |"
+        println(formatted_row)
     end
     
     return all_results
