@@ -196,22 +196,69 @@ I posted a file ```optimization-benchmark.jl``` that compares different methods 
 | Himmelblau | GoldenSection | None | 0.0074 | 0.0235 | 7.9 | 1.0 | 2.06e-18 |
 
 
-## Maximum Likelihood
+## Special Cases
 
 *(Special case where we know the form of the Hessian.)* 
+
+### Maximum Likelihood
+
 
 **Basic idea of Maximum Likelihood:** 
 Choose a distribution function for some data, $y$, that depends on unknown parameters, $θ$.
 
 The log likelihood function is the sum of the logs of the likelihoods of each of the data observations: $l(θ; y) = Σₙ ln(f(yᵢ;θ))$
 
+**Hessian Approximation**
 Define the "score" function as the matrix of derivatives of the $LL$ function evaluated at each observation: $sᵢ(θ;y) = ∂l(θ; yᵢ)/∂θ$
 
-Now consider the $n×k$ (obs x params) score matrix. The expectation of the inner product of the score function is equal to the negative of the expectation of the second derivative of the likelihood function ("information" matrix). This is a positive definite that we can use in place of the Hessian to update the search direction.
+Now consider the $n×k$ (obs x params) score matrix. The expectation of the inner product of the score function is equal to the negative of the expectation of the second derivative of the likelihood function ("information" matrix). This is a positive definite that we can use in place of the Hessian to update the search step .
 
 $d = -[s(θ;y)ᵀs(θ;y)]⁻¹s(θ;y)ᵀ1ₙ$
 
 Plus, the inverse "Hessian" is an estimate for the covariance of $θ$, so we get our standard errors for free!
+
+### Nonlinear Least Squares
+
+Minimize a sum of squared residuals from a generalized residual function. 
+
+# Nonlinear Least Squares (NLLS) Optimization
+
+**Objective Function**
+$S(θ) = min_θ \frac{1}{2} ∑_{i=1..N}(yᵢ - f(xᵢ,θ))²$
+
+Where $θ$ is a $k$ dimensional vector.
+
+**Algorithm**
+1. Initialize $θ₀$
+2. Define Jacobian 
+$$
+J(θ)= 
+\begin{pmatrix}
+\frac{∂f_1}{∂\theta_1}... & \frac{∂f_1}{∂\theta_k}\\
+... & ... \\
+\frac{∂f_N}{∂\theta_1}... & \frac{∂f_N}{∂\theta_k}
+\end{pmatrix}
+$$
+3. The gradient of $S(θ) = \sum_N J(θ)^{\top}f(θ)$.
+4. The Hessian is then 
+$$
+\mathcal{H}(θ) = J(θ)^{\top}J(θ) + \sum_N f_i(θ)\frac{∂^2 f_i}{∂θ∂θ^{⊤}}
+$$
+5. Approximate the Hessian by dropping the second term (to guarentee positive definite matrix). 
+$$
+\mathcal{H}(θ) ≈ J(θ)^{\top}J(θ)
+$$
+6. Search step is then
+$$
+d = - \big[J(θ)^{\top}J(θ)\big]^{-1}J(θ)^{\top}f(θ)
+$$
+7.  Repeat until convergence
+
+## Requirements
+- Continuous, twice-differentiable f(x,θ)
+- Good initial values for convergence
+- May need step-size adjustment: $θₜ₊₁ = θₜ - αH⁻¹g$, where $0 < α ≤ 1$ (and g is the gradient $J^\top f$)
+
 
 ## "Global Optimization"
 
@@ -221,3 +268,13 @@ Plus, the inverse "Hessian" is an estimate for the covariance of $θ$, so we get
 * MCMC approaches: Chernozhukov and Hong (2003)
 
 These methods can be very very slow to converge, but are useful in cases where you know your objective function is non-smooth or very ill-behaved.
+
+In Matlab, I have used `simualted annealing` in the `Global Optimization Toolbox`.
+
+In Julia, here are your options:
+```julia
+using Optim
+using BlackBoxOptim
+using NLopt
+using Evolutionary
+```
