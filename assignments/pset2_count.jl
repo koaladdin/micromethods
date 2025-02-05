@@ -12,15 +12,15 @@ X = Matrix(predictors)
 
 # Define the log-likelihood function for Poisson regression
 function poisson_loglikelihood(β)
-    λ = exp.(X * β)
-    ll = sum(y .* log.(λ) - λ - logfactorial.(y))
+    λ = exp.(X * β) # Calculate the expected value λ for Poisson distribution
+    ll = sum(y .* log.(λ) - λ - logfactorial.(y)) # Calculate log-likelihood
     return -ll  # Negative LL for minimization purposes
 end
 
 # Define the gradient of the log-likelihood function
 function poisson_gradient!(gradient, β)
-    λ = exp.(X * β)
-    gradient .= -X' * (y .- λ)  # Calculate gradient
+    λ = exp.(X * β) # Calculate the expected value λ for Poisson distribution
+    gradient .= -X' * (y .- λ)  # Calculate gradient of log-likelihood
 end
 
 # Initial parameter vector (zeros)
