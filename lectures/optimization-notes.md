@@ -208,7 +208,7 @@ Choose a distribution function for some data, $y$, that depends on unknown param
 
 The log likelihood function is the sum of the logs of the likelihoods of each of the data observations: $l(θ; y) = Σₙ ln(f(yᵢ;θ))$
 
-**Hessian Approximation**
+**Hessian Approximation (so-called BHHH method)**
 Define the "score" function as the matrix of derivatives of the $LL$ function evaluated at each observation: $sᵢ(θ;y) = ∂l(θ; yᵢ)/∂θ$
 
 Now consider the $n×k$ (obs x params) score matrix. The expectation of the inner product of the score function is equal to the negative of the expectation of the second derivative of the likelihood function ("information" matrix). This is a positive definite that we can use in place of the Hessian to update the search step .
