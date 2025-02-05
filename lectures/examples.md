@@ -13,7 +13,7 @@ These are two examples. They both estimate a nonlinear least-squares type object
 - Previous work found a "border puzzle:" Canadian provinces trade 22 times more with each other than with US states. The authors show this estimate is biased due to omitted multilateral resistance terms and develop a theoretically-grounded gravity equation.
 
 E.g. MacCallum (1995) estimated:
-$$ln(x_{ij}) = α_1 + α_2 log(y) + α_3 log(y_j) + α_4 log(d_{ij}) α_5 δ_{ij} +ε_{ij}$$
+$$ln(x_{ij}) = α_1 + α_2 log(y_i) + α_3 log(y_j) + α_4 log(d_{ij}) +  α_5 δ_{ij} +ε_{ij}$$
 
 
 #### Theoretical Framework
