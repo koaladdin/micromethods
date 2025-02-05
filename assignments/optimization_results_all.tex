@@ -1,0 +1,10 @@
+\begin{tabular}{rrrrr}
+  \hline
+  \textbf{Method} & \textbf{Estimates} & \textbf{Iterations} & \textbf{Function\_Evals} & \textbf{Time} \\
+  \texttt{String} & \texttt{Vector\{Float64\}} & \texttt{Int64} & \texttt{Int64} & \texttt{Float64} \\\hline
+  BFGS - Numerical & [2.53391, -0.0322553, 0.115698, -0.354037, 0.0798282, -0.409443] & 18 & 97 & 0.138983 \\
+  BFGS - Analytical & [2.53391, -0.0322553, 0.115698, -0.354037, 0.0798282, -0.409443] & 15 & 92 & 0.0113542 \\
+  Nelder-Mead & [2.5339, -0.0322554, 0.115699, -0.354036, 0.079828, -0.409442] & 408 & 660 & 0.0140789 \\
+  BHHH & [2.5339, -0.0322551, 0.115698, -0.354037, 0.0798283, -0.409442] & 104 & 104 & 0.184916 \\
+  NLLS & [2.51256, -0.038409, 0.114115, -0.279624, 0.0676471, -0.369753] & 43 & 176 & 0.0447159 \\\hline
+\end{tabular}
