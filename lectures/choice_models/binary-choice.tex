@@ -1,7 +1,16 @@
 \documentclass[11pt,dvipsnames,table,aspectratio=169]{beamer}
+% \usepackage{fontspec}
+% \setmainfont{Latin Modern Roman}  % or another Unicode font
+% \usepackage{fontspec}
+% \newfontfamily\greekfont{Linux Libertine O}
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+\setsansfont[Scale=0.9]{DejaVu Sans}  
+\setmonofont[Scale=0.85]{DejaVu Sans Mono}
 
 \usetheme{default}
 \usefonttheme[onlymath]{serif}
+
 
 % Basic packages
 \usepackage[english]{babel}
@@ -829,7 +838,23 @@ D &=& I ( X' \beta + V + \varepsilon \geq 0 )
 
 \item Helpful to have thick-tails (kurtosis). Why? We want to trace $Pr(D | V)$ from $[0,1]$.
 \item Can normalize its coefficient to $1$
-\item 2SLS Assumptions: $E[ \varepsilon | Z] = 0$ and $E[Z'X]$ is full rank.
+\item \textbf{In contrast:} 2SLS Assumptions: $E[ \varepsilon | Z] = 0$ and $E[Z'X]$ is full rank.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Simple SR Estimation Procedure}
+\begin{itemize}
+       \item[1.] Model: $Y*=V + X\beta + \epsilon, \,\,Y=1[Y*>0]$ 
+       \item[2.] Transformation Steps:
+       \begin{itemize}
+       \item[a.] \texttt{v\_centered = v .- mean(v)}
+       \item[b.] \texttt{y\_transformed = y ./ pdf.(Normal(), v\_centered)}
+       \item[c.] Trim extereme values to get \texttt{x\_trim, y\_trim}
+       \item[d.] Run weighted linear regression:\\
+       \item \texttt{weights = pdf.(Normal(), v\_centered[keep])}
+       \item \texttt{β\_hat = (x\_trim'Diagonal(weights)x\_trim)\textbackslash(x\_trim'Diagonal(weights)y\_trim)}
+       \end{itemize} 
 \end{itemize}
 \end{frame}
 
@@ -850,7 +875,7 @@ By properly adjusting $T_i$ we guarantee to stay in $[0,1]$.
 
 % from Dong, Lewbell and Yang
 \begin{frame}
-       \frametitle{A simple SR estimator}
+       \frametitle{A simple SR estimator with instruments (Lewbel and Dong, 2015)}
        \begin{enumerate}
        \item Demean or center $V$ at zero. 
        \begin{itemize}
@@ -864,7 +889,9 @@ By properly adjusting $T_i$ we guarantee to stay in $[0,1]$.
        \item Construct $\hat{T}_i = [D_i -  I(V_i \geq 0)]/ \hat{f_i}$
        \item Linear 2SLS regression of $\hat{T}$ on $X$ using instruments $Z$ to get the estimated coefficients $\hat{\beta}$.
        \end{enumerate}
-       By properly adjusting $T_i$ we guarantee to stay in $[0,1]$.
+       By properly adjusting $T_i$ we guarantee to stay in $[0,1]$.\\[1em]
+
+       Lewbel/Dong shows that by using instruments, $V$ does not need full support, so this is sort of a hybrid approach. 
 \end{frame}
        
 \begin{frame}
@@ -879,7 +906,7 @@ By properly adjusting $T_i$ we guarantee to stay in $[0,1]$.
 
 \begin{frame}
 \frametitle{Special Regressor Advantages}
-\begin{itemize}
+\begin{itemize}\setlength{\itemsep}{1em}
 \item Unlike LPM it stays ``in bounds'' and is consistent with threshold crossing models.
 \item Unlike MLE and CF, does not require correctly specified first stage model: any valid set of instruments may be used, with only efficiency at stake.
 \item Unlike MLE, the SR method has a linear form, not requiring iterative search
@@ -890,68 +917,70 @@ By properly adjusting $T_i$ we guarantee to stay in $[0,1]$.
 
 \begin{frame}
 \frametitle{Special Regressor Disadvantages}
-\begin{itemize}
+\begin{itemize}\setlength{\itemsep}{1em}
 \item Because assumptions are weaker we give up a lot of potential efficiency (larger SEs).
 \item Of course this presumes the assumptions were valid and alternatives were consistent.
-\item SR Methods are generally valid under more general conditions.
+\item Finding a suitable $V$ (or $V$ and $Z$) can be difficult.
+\item might be sensitive to trimming or density estiamtion in first step. 
+% \item SR Methods are generally valid under more general conditions.
 \end{itemize}
 \end{frame}
 
-\begin{frame}
-\frametitle{ The average index function (AIF)/ Propensity Score}
-In the original problem
-\begin{eqnarray*}
-D &=& I ( X' \beta + \varepsilon \geq 0 )
-\end{eqnarray*}
-\begin{itemize}
-\item $V$ is part of $X$ with coefficient $=1$
-\item When $\varepsilon \bot x$ write the propensity score: $E[D | X] = E[D | X \beta] = F_{-\varepsilon} (X \beta)  = Pr(- \varepsilon \leq X \beta)$. 
-\item Under independence $X \bot \varepsilon$ these are the same, under endogeneity or even heteroskedasticity they are not.
-\end{itemize}
-\end{frame}
+% \begin{frame}
+% \frametitle{ The average index function (AIF)/ Propensity Score}
+% In the original problem
+% \begin{eqnarray*}
+% D &=& I ( X' \beta + \varepsilon \geq 0 )
+% \end{eqnarray*}
+% \begin{itemize}
+% \item $V$ is part of $X$ with coefficient $=1$
+% \item When $\varepsilon \bot x$ write the propensity score: $E[D | X] = E[D | X \beta] = F_{-\varepsilon} (X \beta)  = Pr(- \varepsilon \leq X \beta)$. 
+% \item Under independence $X \bot \varepsilon$ these are the same, under endogeneity or even heteroskedasticity they are not.
+% \end{itemize}
+% \end{frame}
 
-\begin{frame}
-\frametitle{ The average index function (AIF)/ Propensity Score}
-\begin{itemize}
-\item Blundell and Powell (ReStud 2004, this is actually the most important control function paper) use the average structural function (ASF) $= F_{-\varepsilon} (X \beta) $ to summarize choice probabilities. But when $\varepsilon \bot X$ is violated then they have to compute $F_{-\varepsilon | X} (X \beta) $ which is quite difficult (especially semiparametrically).
-\item Lewbel, Dong and Tang (CJE 2012) propose using the AIF estimator $E[D | X \beta]$ instead.
-\item Like ASF the AIF is based on the estimated index $X \beta$ and is equal to the propensity score if $\varepsilon \bot X$. However, when this is violated (endogeneity, heteroskedasticity) the AIF is easier to estimate, via unidimensional nonparametric regression of $D$ on $X \beta$.
-\end{itemize}
-\end{frame}
+% \begin{frame}
+% \frametitle{ The average index function (AIF)/ Propensity Score}
+% \begin{itemize}
+% \item Blundell and Powell (ReStud 2004, this is actually the most important control function paper) use the average structural function (ASF) $= F_{-\varepsilon} (X \beta) $ to summarize choice probabilities. But when $\varepsilon \bot X$ is violated then they have to compute $F_{-\varepsilon | X} (X \beta) $ which is quite difficult (especially semiparametrically).
+% \item Lewbel, Dong and Tang (CJE 2012) propose using the AIF estimator $E[D | X \beta]$ instead.
+% \item Like ASF the AIF is based on the estimated index $X \beta$ and is equal to the propensity score if $\varepsilon \bot X$. However, when this is violated (endogeneity, heteroskedasticity) the AIF is easier to estimate, via unidimensional nonparametric regression of $D$ on $X \beta$.
+% \end{itemize}
+% \end{frame}
 
-\begin{frame}
-\frametitle{ What is the difference}
-\begin{description}
-\item[Propensity Score: ]  Conditions on ALL covariates using $F_{-\varepsilon | X}$.
-\item[ASF: ]  Conditions on no covariates using $F_{-\varepsilon }$.
-\item[AIF: ]  Conditions on index only  using $F_{-\varepsilon | X \beta}$.
-\end{description} 
+% \begin{frame}
+% \frametitle{ What is the difference}
+% \begin{description}
+% \item[Propensity Score: ]  Conditions on ALL covariates using $F_{-\varepsilon | X}$.
+% \item[ASF: ]  Conditions on no covariates using $F_{-\varepsilon }$.
+% \item[AIF: ]  Conditions on index only  using $F_{-\varepsilon | X \beta}$.
+% \end{description} 
 
-\begin{itemize}
-\item Unlike ASF, AIF is always identified and easy to estimate.
-\item Unlike Propensity score AIF uses $\beta$ and isn't high dimensional
-\item ASF, AIF and propensity score all coincide under exogeneity.
-\end{itemize}
-\end{frame}
+% \begin{itemize}
+% \item Unlike ASF, AIF is always identified and easy to estimate.
+% \item Unlike Propensity score AIF uses $\beta$ and isn't high dimensional
+% \item ASF, AIF and propensity score all coincide under exogeneity.
+% \end{itemize}
+% \end{frame}
 
-\begin{frame}
-\frametitle{ Marginal Effects}
-\begin{itemize}
-\item With exogenous $X$: MFX are $m(X) = p'(X) =  \frac{\partial E[D | X \beta]}{\partial X}$.
-\item Let $f_{-\varepsilon}$ be marginal pdf of $-\varepsilon$. If $D=I(X' \beta + \varepsilon \geq 0)$ with $\varepsilon \bot X$ then:
-\end{itemize}
-\begin{eqnarray*}
-m (X \beta) \beta= \frac{\partial E[D | X]}{\partial X}  = \frac{\partial E[D | X \beta]}{\partial X' \beta}  \beta  = f_{-\varepsilon}(X' \beta) \beta
-\end{eqnarray*}
+% \begin{frame}
+% \frametitle{ Marginal Effects}
+% \begin{itemize}
+% \item With exogenous $X$: MFX are $m(X) = p'(X) =  \frac{\partial E[D | X \beta]}{\partial X}$.
+% \item Let $f_{-\varepsilon}$ be marginal pdf of $-\varepsilon$. If $D=I(X' \beta + \varepsilon \geq 0)$ with $\varepsilon \bot X$ then:
+% \end{itemize}
+% \begin{eqnarray*}
+% m (X \beta) \beta= \frac{\partial E[D | X]}{\partial X}  = \frac{\partial E[D | X \beta]}{\partial X' \beta}  \beta  = f_{-\varepsilon}(X' \beta) \beta
+% \end{eqnarray*}
 
-With endogenous $X$:
-\begin{itemize}
-\item Propensity Score marginal effects are $m(X) = p'(X) =  \frac{\partial E[D | X]}{\partial X}$.
-\item ASF marginal effects are $m(X) =\frac{\partial ASF(X'\beta)}{\partial X'\beta} \beta = f_{-\varepsilon}(X' \beta) \beta.$
-\item AIF marginal effects are $m(X) =\frac{\partial ASF(X'\beta)}{\partial X'\beta} \beta = \frac{\partial E[D | X' \beta ]}{\partial X' \beta} \beta$
-\end{itemize}
-Given $\hat{\beta}$ ASF and AIF mfx require just one dimensional index derivative.
-\end{frame}
+% With endogenous $X$:
+% \begin{itemize}
+% \item Propensity Score marginal effects are $m(X) = p'(X) =  \frac{\partial E[D | X]}{\partial X}$.
+% \item ASF marginal effects are $m(X) =\frac{\partial ASF(X'\beta)}{\partial X'\beta} \beta = f_{-\varepsilon}(X' \beta) \beta.$
+% \item AIF marginal effects are $m(X) =\frac{\partial ASF(X'\beta)}{\partial X'\beta} \beta = \frac{\partial E[D | X' \beta ]}{\partial X' \beta} \beta$
+% \end{itemize}
+% Given $\hat{\beta}$ ASF and AIF mfx require just one dimensional index derivative.
+% \end{frame}
 
 \begin{frame}
 \frametitle{Binary Choice with Endogenous Regressors}
