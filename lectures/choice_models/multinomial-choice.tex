@@ -1072,5 +1072,108 @@ Time & 59.0 s & 10.7 s & 192s  \\
 % \end{itemize}
 % }
 
+\begin{frame}
+  \frametitle{Demand and Supply in Market Equilibrium}
+  
+  \begin{itemize}
+  \item Goals:
+    \begin{enumerate}
+    \item Estimating discrete choice demand models with aggregate data
+    \item Solutions of endogeneous prices $\rightarrow$ Positive bias in OLS
+      price coefficients
+    % \item Build in cost side and imperfect competition
+    \item Usefulness of ``micro'' data on consumer choices like typical MNLogit (micro BLP and Petrin)
+    \end{enumerate} \bigskip
+  \item Applications:
+    \begin{enumerate}
+    \item Demand for cars (BLP, micro BLP, Petrin)
+    \item Welfare effects of introducing the minivan (Petrin)
+    \item Market power in ready to eat cereal industry (Nevo)
+    \end{enumerate}
+  \end{itemize}
+  \end{frame}
+  
+  
+  \begin{frame}{Solving Some Problems}
+    We saw from MNLogit that the choice probabilities were
+    \begin{eqnarray*}
+      s_{ij} &=&  \frac{\exp[x_{j} \beta_i  ]}{1+\sum_k \exp[x_{k} \beta_i  ]} \\
+      %  &=& \sum_{s=1}^{ns} w_s \frac{\exp[x_{j} (\overline{\beta} + \Sigma \nu_{is})  ]}{1+\sum_k \exp[x_{k} (\overline{\beta} + \Sigma \nu_{is})  ]} 
+      \end{eqnarray*}
+  
+But if we only have aggregate data, we need to sum over the $i$'s to get aggregate shares. 
+\begin{align*}
+s_{j} = \int \frac{\exp[x_{j} \beta_i  ]}{1+\sum_k \exp[x_{k} \beta_i  ]} f(\beta_i | \theta) \\
+\end{align*}
+
+Also, one if the $x$'s is endogenous?
+  \end{frame}
+
+
+\begin{frame}{Endogeneity}
+  
+  Since we don't  have individual-level data anyway, we can get a bit create.\\[2em]
+
+  Let's start backwards with GMM IV: $E[\xi | Z] = 0$.\\[2em]
+
+  How can we take advatage of this general framework for dealing with endogeneity?
+
+  Rewrite the choice problem as:
+  $$u_{ij} = \delta_j + \mu_{ij})(\theta) + \epsilon_{ij} $$
+
+  where $$\delta_j = x_j \beta + \alpha p_j + \xi_j$$.
+and where we broke out $p$ from the vector $x$ to denote it is special (endogenous).\\[2em]
+
+The $\delta$ equation is linear in the endogenous variable, so if $delta$ were data, we could use the GMMIV (or 2SLS) framework. 
+
+\end{frame}
+
+\begin{frame}{Finding $\delta$}
+
+  Berry (1994) shows that this general demand structure, with extreme value $\epsilon$ implies a unique vector of $delta$ that rationalizes 
+
+  $$s_{j}^{\text{data}} = s_j^{\text{model}}(\theta)$$
+
+  (Later work generalizes this to any demand system that satisfies very mild properties)\\[2em]
+
+  Therefore, we use the shares condition to solve for a unique $\delta$, and then treat that $\delta$ as data and do some form of linear IV regression.\\[2em] 
+
+  Problem: the $s_{j}^{\text{data}} = s_j^{\text{model}}(\theta)$ depends on additional parameters $\theta$ that define $\mu_{ij}(\theta)$.\\[2em]
+
+  So we need to estimate these as well!
+\end{frame}
+
+\begin{frame}{Procedure}
+  % \framesubtitle{concrete example}
+
+\begin{itemize}
+  \item[1.] Guess $\theta$.
+  \item[2.] Compute aggregate shares a la MNLogit. 
+  $$ s_{j} = \int \frac{\exp[\delta_{j} + \mu_{ij}(\theta)]}{1+\sum_k \exp[\delta_{k} + \mu_{ik}(\theta) ]} d\mu_{i} $$
+  \item[3.] Solve the NL system of equations and unknowns 
+  $$s_j = s_j^\text{data}$$
+  \item[4.] Form GMM objective function\footnote{Note: we can profile out $\beta$ and estimate in a second step.}
+  $$\min_{\theta,\beta} m(\theta,\beta,\alpha)' \, W \, m(\theta,\beta,\alpha)' $$ 
+  where $m(\theta,\beta,\alpha) = (\xi' Z)$
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Some Unresolved Issues}
+
+  Notice that we have to estimate $\theta$ and $\beta$ and $\alpha$. Choice of IVs:
+  \begin{itemize}\setlength{\itemsep}{1em}
+    \item $X$ for $X$ (to identify $\beta$) 
+    \item cost shifter(?) for $p$ (to identify $\alpha$)
+    \item What for $\theta$?
+  \end{itemize}
+  
+  Should we really be forcing the shares to match? This is like putting infinite weight on one particular moment.\\[2em]
+
+  These integrals can get nasty. How much computation? Numerical error?\\[2em]
+
+  Others?
+
+\end{frame}
 
 \end{document}
