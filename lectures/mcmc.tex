@@ -49,7 +49,9 @@
 \setbeamercolor{enumerate subitem}{fg=blue}
 \setbeamercolor{button}{bg=MyBackground,fg=blue,}
 
-
+\setbeamertemplate{itemize item}{$\bullet$}
+\setbeamertemplate{itemize subitem}{$\circ$}     % hollow circle for second level
+\setbeamertemplate{itemize subsubitem}{$\ast$}   % asterisk for third level
 
 \title[]{\textcolor{blue}{Markov Chain Monte Carlo}}
 
@@ -221,15 +223,46 @@ $$\tilde{\tau}^2 = \left(  \frac{N}{\sigma^2} + \frac{1}{\tau^2} \right)^{-1} $$
 \framesubtitle{Cameron and Trivedi, p422}    
 
 \begin{wideitemize}
-	\item The final line is a normal kernel (just complete the square :) ). 
+	\item The final line is a normal kernel -- just complete the square :). 
 	\item The posterior is normally distributed with mean $\tilde{\mu}$ which is a weighted sum of $y$ and the prior mean $\mu$.
 	\item Since this posterior is normal, it is easy for us to compute the moments.
 	\item Mean of posterior goes to $\bar{y}$ as $N\rightarrow\infty$. 
 	\item But computing moments of even slightly messier posteriors will require complex integration that we will tackle via simulation. 
 \end{wideitemize}
 
-
 \end{frame}
+
+
+
+\begin{frame}[c]\frametitle{Conjugate Priors}
+  \framesubtitle{A Convenient Mathematical Property}
+  
+  Bayesian updating combines:
+  $$ \text{posterior} \propto \text{likelihood} \times \text{prior} $$
+  
+  A conjugate prior occurs when:
+  \begin{itemize}
+  \item The posterior distribution is in the same family as the prior
+  \item This makes computation of the posterior analytically tractable
+  \end{itemize}
+  
+  \vspace{0.5em}
+  Classic Example:
+  $$ X_i \sim N(\mu, \sigma^2) \quad \text{(likelihood)} $$
+  $$ \mu \sim N(\mu_0, \tau^2) \quad \text{(prior)} $$
+  $$ \mu|X_1,\ldots,X_n \sim N(\mu_n, \tau_n^2) \quad \text{(posterior)} $$
+  
+  \vspace{0.5em}
+  Key Benefits:
+  \begin{itemize}
+  \item Closed-form posterior updates
+  \item No need for numerical integration
+  \item Particularly useful in iterative procedures (e.g., Gibbs sampling)
+  \end{itemize}
+  \end{frame}
+
+
+
 
 
 \begin{frame}[c]\frametitle{Review of Monte Carlo Integration}
@@ -237,7 +270,7 @@ $$\tilde{\tau}^2 = \left(  \frac{N}{\sigma^2} + \frac{1}{\tau^2} \right)^{-1} $$
 The point of monte carlo integration is to use draws from a distribution to calculate the moments of $\rho(\theta|y)$. If $\rho(\cdot)$ is ``easy'' to draw from (say, uniform or normal) then we can use traditional monte carlo integration techniques: 
 $$E[m(\theta)] = \int_\Theta m(\theta) \rho(\theta|y) d\theta \approx \frac{1}{S} \sum_{s=1}^S m(\theta_s)$$
 \begin{itemize}
-\item $m(\cdot)$ is an arbitrary function, say identity if we want the mean. We need to assume this expectation exists (of course).  
+\item $m(\cdot)$ is an arbitrary function: e.g. $m(\theta)=\theta$ if we  want to identify the mean.  
 \item $\theta_s$ is a draw from $\rho(\theta|y)$. 
 \end{itemize}
 
@@ -285,8 +318,7 @@ where $\theta_i \sim F(\cdot | \theta_{i-1})$.
 
 \begin{frame}[c]\frametitle{Markov Chain Theory}    
 
-Let the state space for $\theta$ be discrete, $\Theta = \{\theta^{(1)}, \ldots, \theta^{(K)} \}$.\footnote{Of course this isn't reasonable for estimation but it allows me to 
-skip over a bunch of measure theory.} 
+Let the state space for $\theta$ be discrete, $\Theta = \{\theta^{(1)}, \ldots, \theta^{(K)} \}$.\footnote{You'll typically have a continuous distribution, but using a discrete example is much easier on the math (no measure theory).} 
 
 \vspace{2em}
 Let our chain be defined by
@@ -315,9 +347,9 @@ If for all $i,j$: $p_{ij} > 0$, then every state will be visited infinitely ofte
 \vspace{1em}
 A stationary distribution exists and is unique:
 $$ \lim_{r \rightarrow \infty} \pi_0P^r = \pi$$
-for any $\pi_0$ and of course, 
+for any $\pi_0$. Then we will have 
 $$ \pi = \pi P $$
-The stationary distribution $\pi$ is sometimes called the invariant distribution. 
+The stationary distribution $\pi$ is sometimes called the ``invariant'' distribution. 
 
 \end{frame}
 
@@ -333,9 +365,11 @@ $$ \pi_i p_{ij} = \pi_j p_{ji}$$
 
 
 
-\begin{frame}[c]\frametitle{MCMC: Gibbs Sampling}
+\begin{frame}[c]\frametitle{Markov Chain Monte Carlo: Gibbs Sampling}
 
-Construct Markov chain by ``cycling'' through conditional distributions related to $\pi$. 
+  This is a technique to simplify the Monte Carlo draws, by alternating draws from simpler conditionals. 
+
+  Construct Markov chain by ``cycling'' through conditional distributions related to $\pi$. 
 
 \begin{wideitemize}
 	\item Let $\theta = [\theta_1, \theta_2]'$ with posterior density $p(\theta_1, \theta_2)$.
@@ -344,6 +378,8 @@ Construct Markov chain by ``cycling'' through conditional distributions related 
 
 
 \end{frame}
+
+
 
 
 \begin{frame}[c]\frametitle{Gibbs Example: Probit}
@@ -382,7 +418,7 @@ where $\tilde{\beta} = (X'X + A)^{-1}(X'z + A\bar{\beta})$.
 \end{frame}
 
 
-\begin{frame}[c]\frametitle{Example | Multivariate Normal}
+\begin{frame}[c]\frametitle{Another Example | Multivariate Normal}
     
 The file {\tt simpleGibbs.m} implements Gibbs sampling to draw from a bivariate normal: 
 
